@@ -97,8 +97,8 @@ function parseAxis(str) {
   if (mx) return { variable: 'x', value: evalNum(mx[1]), rawStr: mx[1] };
   const my = low.match(/^y=(.+)$/);
   if (my) return { variable: 'y', value: evalNum(my[1]), rawStr: my[1] };
-  if (low === 'x') return { variable: 'x', value: 0, rawStr: '0' };
-  if (low === 'y') return { variable: 'y', value: 0, rawStr: '0' };
+  if (low === 'x') return { variable: 'y', value: 0, rawStr: '0' };
+  if (low === 'y') return { variable: 'x', value: 0, rawStr: '0' };
   return null;
 }
 
@@ -554,18 +554,23 @@ function getFormulaLatex(f1Str, f2Str, a, b, axis, volume) {
     formula = `V = \\pi \\int_{${aStr}}^{${bStr}} \\left(\\left[${makeRadiusExpr(outerStr, outerVal)}\\right]^2 - \\left[${makeRadiusExpr(innerStr, innerVal)}\\right]^2\\right) dx = ${volStr}`;
 
   } else {
-    title = 'Shell Method';
-     let fv1, fv2;
+  title = 'Shell Method';
+  let fMid;
+  try { fMid = math.evaluate(f1Str, { x: mid }); } catch(e) { fMid = 0; }
+  const shellRadius = makeShellExpr('x', fMid);
+
+  let heightExpr;
+  if (f2Str) {
+    let fv1, fv2;
     try { fv1 = math.evaluate(f1Str, { x: mid }); } catch(e) { fv1 = 0; }
     try { fv2 = math.evaluate(f2Str, { x: mid }); } catch(e) { fv2 = 0; }
-    const d1 = Math.abs(fv1 - k), d2 = Math.abs(fv2 - k);
-    const [outerStr, outerVal, innerStr, innerVal] = d1 >= d2
-      ? [f1Str, fv1, f2Str, fv2]
-      : [f2Str, fv2, f1Str, fv1];
-   
-      try { fMid = math.evaluate(f1Str, { x: mid }); } catch(e) { fMid = 0; }
-    formula = `V = 2\\pi \\int_{${aStr}}^{${bStr}} [${makeShellExpr(f1Str, fMid)}] \\cdot [${makeHeightExpr(f1Str, f2Str, fv1, fv2)}] \\, dx = ${volStr}`;
+    heightExpr = makeHeightExpr(f1Str, f2Str, fv1, fv2);
+  } else {
+    heightExpr = f1Str;
   }
+
+  formula = `V = 2\\pi \\int_{${aStr}}^{${bStr}} \\left[${shellRadius}\\right] \\cdot \\left[${heightExpr}\\right] \\, dx = ${volStr}`;
+}
 
   return { title, formula, axisLabel };
 }
